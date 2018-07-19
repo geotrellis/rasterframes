@@ -22,7 +22,6 @@ package astraea.spark.rasterframes.datasource.geotiff
 import _root_.geotrellis.raster.io.geotiff.GeoTiff
 import astraea.spark.rasterframes._
 import astraea.spark.rasterframes.datasource._
-import astraea.spark.rasterframes.util._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.sources.{BaseRelation, CreatableRelationProvider, DataSourceRegister, RelationProvider}
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
@@ -31,11 +30,13 @@ import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
  * Spark SQL data source over GeoTIFF files.
  * @since 1/14/18
  */
-class DefaultSource extends DataSourceRegister with RelationProvider with CreatableRelationProvider with LazyLogging {
+class DefaultSource extends DataSourceRegister
+  with RelationProvider with CreatableRelationProvider
+  with DataSourceOptions with LazyLogging {
   def shortName() = DefaultSource.SHORT_NAME
 
   def path(parameters: Map[String, String]) =
-    uriParam(DefaultSource.PATH_PARAM, parameters)
+    uriParam(PATH_PARAM, parameters)
 
   def createRelation(sqlContext: SQLContext, parameters: Map[String, String]) = {
     val pathO = path(parameters)
@@ -56,8 +57,8 @@ class DefaultSource extends DataSourceRegister with RelationProvider with Creata
 
     val tl = rf.tileLayerMetadata.merge.layout.tileLayout
 
-    val cols = numParam(DefaultSource.IMAGE_WIDTH_PARAM, parameters).getOrElse(tl.totalCols)
-    val rows = numParam(DefaultSource.IMAGE_HEIGHT_PARAM, parameters).getOrElse(tl.totalRows)
+    val cols = numParam(IMAGE_WIDTH_PARAM, parameters).getOrElse(tl.totalCols)
+    val rows = numParam(IMAGE_HEIGHT_PARAM, parameters).getOrElse(tl.totalRows)
 
     require(cols <= Int.MaxValue && rows <= Int.MaxValue, s"Can't construct a GeoTIFF of size $cols x $rows. (Too big!)")
 
@@ -75,7 +76,4 @@ class DefaultSource extends DataSourceRegister with RelationProvider with Creata
 
 object DefaultSource {
   final val SHORT_NAME = "geotiff"
-  final val PATH_PARAM = "path"
-  final val IMAGE_WIDTH_PARAM = "imageWidth"
-  final val IMAGE_HEIGHT_PARAM = "imageWidth"
 }
