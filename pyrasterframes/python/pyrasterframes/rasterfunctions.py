@@ -160,6 +160,7 @@ _rf_column_scalar_functions = {
     'localEqualScalarInt': 'Return a Tile with values equal 1 if the cell is equal to a scalar, otherwise 0',
     'localUnequalScalar': 'Return a Tile with values equal 1 if the cell is not equal to a scalar, otherwise 0',
     'localUnequalScalarInt': 'Return a Tile with values equal 1 if the cell is not equal to a scalar, otherwise 0',
+    'erodePixels': 'Erode given number of pixels from tile boundary'
 }
 
 

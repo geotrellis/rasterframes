@@ -160,6 +160,12 @@ trait RasterFunctions {
     udf[CellStatistics, Tile](F.tileStats).apply(col)
   ).as[CellStatistics]
 
+  /** Erode given number of pixels from tile boundary. */
+  def erodePixels(tileCol: Column, pixels: Int): TypedColumn[Any, Tile] = {
+    val f = F.erodePixels(_: Tile, pixels)
+    udf(f).apply(tileCol).as(s"erodePixels($tileCol, $pixels)").as[Tile]
+  }
+
   /** Counts the number of non-NoData cells per Tile. */
   def dataCells(tile: Column): TypedColumn[Any, Long] =
     withAlias("dataCells", tile)(
@@ -321,7 +327,7 @@ trait RasterFunctions {
       udf(F.rasterize(_: Geometry, _: Geometry, _: Int, cols, rows)).apply(geometry, bounds, value)
     ).as[Tile]
 
-  /** Reproject a column of geometry from one CRS to another. */  
+  /** Reproject a column of geometry from one CRS to another. */
   def reprojectGeometry(sourceGeom: Column, srcCRS: CRS, dstCRS: CRS): TypedColumn[Any, Geometry] =
     withAlias("reprojectGeometry", sourceGeom)(
       udf(F.reprojectGeometry(_: Geometry, srcCRS, dstCRS)).apply(sourceGeom)

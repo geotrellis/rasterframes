@@ -277,6 +277,11 @@ package object functions {
     floatingPointTile(t).localDivide(scalar)
   })
 
+    /** Erode given number of pixels from tile boundary. */
+  private[rasterframes] val erodePixels: (Tile, Int) ⇒ Tile = safeEval((t: Tile, scalar:Int) => {
+    t.crop(scalar, scalar, t.cols - scalar - 1, t.rows  - scalar - 1)
+  })
+
   /** Cell-wise normalized difference of tiles. */
   private[rasterframes] val normalizedDifference:  (Tile, Tile) ⇒ Tile = safeEval((t1: Tile, t2:Tile) => {
     Divide(Subtract(t1, t2), Add(t1, t2))
@@ -440,7 +445,7 @@ package object functions {
   private[rasterframes] val localUnequalScalar: (Tile, Double) ⇒ Tile = safeEval((t: Tile, scalar: Double) ⇒ {
     floatingPointTile(t).localUnequal(scalar)
   })
-  
+
   private[rasterframes] val reprojectGeometry: (Geometry, CRS, CRS) ⇒ Geometry =
     (sourceGeom, src, dst) ⇒ {
       val trans = new ReprojectionTransformer(src, dst)
@@ -491,6 +496,7 @@ package object functions {
     sqlContext.udf.register("rf_localDivide", localDivide)
     sqlContext.udf.register("rf_localDivideScalar", localDivideScalar)
     sqlContext.udf.register("rf_localDivideScalarInt", localDivideScalarInt)
+    sqlContext.udf.register("rf_erodePixels", erodePixels)
     sqlContext.udf.register("rf_normalizedDifference", normalizedDifference)
     sqlContext.udf.register("rf_cellTypes", cellTypes)
     sqlContext.udf.register("rf_renderAscii", renderAscii)
