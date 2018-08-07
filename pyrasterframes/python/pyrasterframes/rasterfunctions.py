@@ -124,6 +124,16 @@ def _create_explode_tiles():
     _.__module__ = THIS_MODULE
     return _
 
+def _create_local_slope():
+    """ Create a function to calculate the slope of a tile """
+    def _(tileCol, cellwidth, cellheight, zfactor):
+        jfcn = RFContext.active().lookup('localSlope')
+        return Column(jfcn(_to_java_column(tileCol), cellwidth, cellheight, zfactor))
+    _.__name__ = 'localSlope'
+    _.__doc__ = 'Calculate the slope from a tile\'s pixel values'
+    _.__module__ = THIS_MODULE
+    return _
+
 _rf_unique_functions = {
     'assembleTile': _create_assembleTile(),
     'arrayToTile': _create_arrayToTile(),
@@ -134,7 +144,8 @@ _rf_unique_functions = {
     'cellTypes': lambda: _context_call('cellTypes'),
     'rasterize': _create_rasterize(),
     'reprojectGeometry': _create_reproject_geometry(),
-    'explodeTiles': _create_explode_tiles()
+    'explodeTiles': _create_explode_tiles(),
+    'localSlope': _create_local_slope()
 }
 
 

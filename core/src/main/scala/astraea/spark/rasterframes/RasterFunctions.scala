@@ -166,6 +166,12 @@ trait RasterFunctions {
     udf(f).apply(tileCol).as(s"erodePixels($tileCol, $pixels)").as[Tile]
   }
 
+  /** Find the slope of pixels in a tile */
+  def localSlope(tileCol: Column, cellwidth: Double, cellheight: Double, zfactor: Double): TypedColumn[Any, Tile] = {
+    val f = F.localSlope(_: Tile, cellwidth, cellheight, zfactor)
+    udf(f).apply(tileCol).as(s"localSlope($tileCol, $cellwidth, $cellheight, $zfactor)").as[Tile]
+  }
+
   /** Counts the number of non-NoData cells per Tile. */
   def dataCells(tile: Column): TypedColumn[Any, Long] =
     withAlias("dataCells", tile)(

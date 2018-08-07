@@ -24,6 +24,7 @@ import geotrellis.raster.mapalgebra.local._
 import geotrellis.raster.render.ascii.AsciiArtEncoder
 import geotrellis.raster.{Tile, _}
 import geotrellis.vector.Extent
+import geotrellis.util.{StreamingByteReader, FileRangeReader}
 import org.apache.spark.sql.SQLContext
 
 import scala.reflect.runtime.universe._
@@ -54,6 +55,12 @@ package object functions {
   @inline
   private[rasterframes] def safeEval[P1, P2, R](f: (P1, P2) ⇒ R): (P1, P2) ⇒ R =
     (p1, p2) ⇒ if (p1 == null || p2 == null) null.asInstanceOf[R] else f(p1, p2)
+  @inline
+  private[rasterframes] def safeEval[P1, P2, P3, R](f: (P1, P2, P3) ⇒ R): (P1, P2, P3) ⇒ R =
+    (p1, p2, p3) ⇒ if (p1 == null || p2 == null || p3 == null) null.asInstanceOf[R] else f(p1, p2, p3)
+  @inline
+  private[rasterframes] def safeEval[P1, P2, P3, P4, R](f: (P1, P2, P3, P4) ⇒ R): (P1, P2, P3, P4) ⇒ R =
+    (p1, p2, p3, p4) ⇒ if (p1 == null || p2 == null || p3 == null || p4 == null) null.asInstanceOf[R] else f(p1, p2, p3, p4)
 
 
   /** Count tile cells that have a data value. */
@@ -277,9 +284,13 @@ package object functions {
     floatingPointTile(t).localDivide(scalar)
   })
 
-    /** Erode given number of pixels from tile boundary. */
+  /** Erode given number of pixels from tile boundary. */
   private[rasterframes] val erodePixels: (Tile, Int) ⇒ Tile = safeEval((t: Tile, scalar:Int) => {
     t.crop(scalar, scalar, t.cols - scalar - 1, t.rows  - scalar - 1)
+  })
+
+  private[rasterframes] val localSlope: (Tile, Double, Double, Double) ⇒ Tile = safeEval((t: Tile, w: Double, h: Double, zf: Double) => {
+    t.slope(CellSize(w, h), zf)
   })
 
   /** Cell-wise normalized difference of tiles. */
