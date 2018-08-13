@@ -21,6 +21,7 @@ import astraea.spark.rasterframes.util.CRSParser
 import com.vividsolutions.jts.geom.Geometry
 import geotrellis.proj4.CRS
 import geotrellis.raster.mapalgebra.local._
+import geotrellis.raster.mapalgebra.focal
 import geotrellis.raster.render.ascii.AsciiArtEncoder
 import geotrellis.raster.{Tile, _}
 import geotrellis.vector.Extent
@@ -289,8 +290,25 @@ package object functions {
     t.crop(scalar, scalar, t.cols - scalar - 1, t.rows  - scalar - 1)
   })
 
+  /** Find the slope of pixels in a tile */
   private[rasterframes] val localSlope: (Tile, Double, Double, Double) ⇒ Tile = safeEval((t: Tile, w: Double, h: Double, zf: Double) => {
     t.slope(CellSize(w, h), zf)
+  })
+
+  /** Perform focal operation using a square neighborhood over the present tile, eroding edge pixels */
+  private[rasterframes] val localNbhdOp: (Tile, Int, String) ⇒ Tile = safeEval((t: Tile, n: Int, op: String) => {
+    val nbhd = focal.Square(n)
+    val gb = t.gridBounds.buffer(-(n/2))
+    op.toLowerCase match {
+      case "mean" ⇒ focal.Mean(t, nbhd, Some(gb))
+      case "median" ⇒ focal.Median(t, nbhd, Some(gb))
+      case "max" ⇒ focal.Max(t, nbhd, Some(gb))
+      case "min" ⇒ focal.Min(t, nbhd, Some(gb))
+      case "mode" ⇒ focal.Mode(t, nbhd, Some(gb))
+      case "stddev" ⇒ focal.StandardDeviation(t, nbhd, Some(gb))
+      case "sum" ⇒ focal.Sum(t, nbhd, Some(gb))
+      case _ ⇒ throw new MatchError(s"$op is not a recognized neighborhood operation")
+    }
   })
 
   /** Cell-wise normalized difference of tiles. */
@@ -508,6 +526,7 @@ package object functions {
     sqlContext.udf.register("rf_localDivideScalar", localDivideScalar)
     sqlContext.udf.register("rf_localDivideScalarInt", localDivideScalarInt)
     sqlContext.udf.register("rf_erodePixels", erodePixels)
+    sqlContext.udf.register("rf_localNbhdOp", localNbhdOp)
     sqlContext.udf.register("rf_normalizedDifference", normalizedDifference)
     sqlContext.udf.register("rf_cellTypes", cellTypes)
     sqlContext.udf.register("rf_renderAscii", renderAscii)

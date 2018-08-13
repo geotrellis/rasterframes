@@ -172,6 +172,12 @@ trait RasterFunctions {
     udf(f).apply(tileCol).as(s"localSlope($tileCol, $cellwidth, $cellheight, $zfactor)").as[Tile]
   }
 
+  /** Perform focal operation using a square neighborhood over the present tile, eroding edge pixels */
+  def localNbhdOp(tileCol: Column, neighborhoodSize: Int, op: String): TypedColumn[Any, Tile] = {
+    val f = F.localNbhdOp(_ :Tile, neighborhoodSize, op)
+    udf(f).apply(tileCol).as(s"localNbhdOp($tileCol, $neighborhoodSize, $op)").as[Tile]
+  }
+
   /** Counts the number of non-NoData cells per Tile. */
   def dataCells(tile: Column): TypedColumn[Any, Long] =
     withAlias("dataCells", tile)(

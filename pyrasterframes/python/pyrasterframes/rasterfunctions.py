@@ -134,6 +134,16 @@ def _create_local_slope():
     _.__module__ = THIS_MODULE
     return _
 
+def _create_local_nbhd_op():
+    """ Create a function to calculate the slope of a tile """
+    def _(tileCol, nbhd_size, op):
+        jfcn = RFContext.active().lookup('localNbhdOp')
+        return Column(jfcn(_to_java_column(tileCol), nbhd_size, op))
+    _.__name__ = 'localNbhdOp'
+    _.__doc__ = 'Apply a focal neighborhood operation to tile, eroding edge pixels'
+    _.__module__ = THIS_MODULE
+    return _
+
 _rf_unique_functions = {
     'assembleTile': _create_assembleTile(),
     'arrayToTile': _create_arrayToTile(),
@@ -145,7 +155,8 @@ _rf_unique_functions = {
     'rasterize': _create_rasterize(),
     'reprojectGeometry': _create_reproject_geometry(),
     'explodeTiles': _create_explode_tiles(),
-    'localSlope': _create_local_slope()
+    'localSlope': _create_local_slope(),
+    'localNbhdOp': _create_local_nbhd_op()
 }
 
 
