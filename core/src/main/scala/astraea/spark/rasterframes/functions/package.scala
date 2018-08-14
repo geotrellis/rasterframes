@@ -291,7 +291,7 @@ package object functions {
   })
 
   /** Find the slope of pixels in a tile */
-  private[rasterframes] val localSlope: (Tile, Double, Double, Double) ⇒ Tile = safeEval((t: Tile, w: Double, h: Double, zf: Double) => {
+  private[rasterframes] val localSlope: (Tile, Double, Double, Double) ⇒ Tile = safeEval((t: Tile, zf: Double, w: Double, h: Double) => {
     t.slope(CellSize(w, h), zf)
   })
 

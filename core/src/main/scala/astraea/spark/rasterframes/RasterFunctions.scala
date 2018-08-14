@@ -167,9 +167,9 @@ trait RasterFunctions {
   }
 
   /** Find the slope of pixels in a tile */
-  def localSlope(tileCol: Column, cellwidth: Double, cellheight: Double, zfactor: Double): TypedColumn[Any, Tile] = {
-    val f = F.localSlope(_: Tile, cellwidth, cellheight, zfactor)
-    udf(f).apply(tileCol).as(s"localSlope($tileCol, $cellwidth, $cellheight, $zfactor)").as[Tile]
+  def localSlope(tileCol: Column, zfactor: Column, cellwidth: Double, cellheight: Double): TypedColumn[Any, Tile] = {
+    val f = F.localSlope(_: Tile, _: Double, cellwidth, cellheight)
+    udf(f).apply(tileCol, zfactor).as(s"localSlope($tileCol, $zfactor, $cellwidth, $cellheight)").as[Tile]
   }
 
   /** Perform focal operation using a square neighborhood over the present tile, eroding edge pixels */
