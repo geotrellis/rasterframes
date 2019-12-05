@@ -115,6 +115,9 @@ def to_arrow_type(dt):
         if type(dt.elementType) == TimestampType:
             raise TypeError("Unsupported type in conversion to Arrow: " + str(dt))
         arrow_type = pa.list_(to_arrow_type(dt.elementType))
+    elif isinstance(dt, UserDefinedType):
+        # TODO implement this after improving pyarrow extension type interface
+        raise NotImplementedError("Need improved pyarrow extension type handling")
     else:
         raise TypeError("Unsupported type in conversion to Arrow: " + str(dt))
     return arrow_type
