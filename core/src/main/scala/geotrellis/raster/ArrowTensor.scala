@@ -1,13 +1,13 @@
 package geotrellis.raster
 
-import java.io.{ByteArrayInputStream, FileInputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, FileInputStream}
 import java.nio.ByteBuffer
 import java.nio.channels.Channels
 
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.arrow.flatbuf.{Buffer, Tensor, TensorDim, Type}
 import org.apache.arrow.memory.RootAllocator
-import org.apache.arrow.vector.ipc.ReadChannel
+import org.apache.arrow.vector.ipc.{ReadChannel, WriteChannel}
 import org.apache.arrow.vector.ipc.message.{ArrowFieldNode, MessageSerializer}
 import org.apache.arrow.vector.types.FloatingPointPrecision
 import org.apache.arrow.vector.types.pojo.{ArrowType, Field, FieldType, Schema}
@@ -15,7 +15,8 @@ import org.apache.arrow.vector.{Float8Vector, VectorSchemaRoot}
 
 import scala.collection.JavaConverters._
 
-class ArrowTensor(vector: Float8Vector, shape: Seq[Int]) {
+case class ArrowTensor(val vector: Float8Vector, val shape: Seq[Int]) {
+  // TODO: Should we be using ArrowBuf here directly, since Arrow Tensor can not have pages?
 
   /** Write Tensor to buffer, return offset of Tensor object in that buffer */
   def writeTensor(bufferBuilder: FlatBufferBuilder): Int = {
@@ -24,7 +25,7 @@ class ArrowTensor(vector: Float8Vector, shape: Seq[Int]) {
     // TODO: make work for more than 2 dimensions
     // Array[Long](shape(0) * elementSize, elementSize)
     val strides: Array[Long] = {
-      shape.rev
+      shape.reverse.map(_.toLong).toArray
     }
 
     val shapeOffset: Int = {
@@ -61,8 +62,21 @@ class ArrowTensor(vector: Float8Vector, shape: Seq[Int]) {
     val bufferBuilder = new FlatBufferBuilder(512)
     val tensorOffset = writeTensor(bufferBuilder)
     val tensorBodySize: Int = vector.getValueCount * 8
+
     MessageSerializer.serializeMessage(bufferBuilder, org.apache.arrow.flatbuf.MessageHeader.Tensor, tensorOffset, tensorBodySize);
   }
+
+  def toArrowBytes(): Array[Byte] = {
+    val bb = toIpcMessage()
+    val bout = new ByteArrayOutputStream()
+    val wbc = new WriteChannel(Channels.newChannel(bout))
+    MessageSerializer.writeMessageBuffer(wbc, bb.remaining(), bb)
+    // wbc.align
+    wbc.write(vector.getDataBuffer)
+    wbc.close()
+    bout.toByteArray
+  }
+
 }
 
 object ArrowTensor {
@@ -92,12 +106,11 @@ object ArrowTensor {
     val channel = Channels.newChannel(is)
     val readChannel = new ReadChannel(channel)
     val msg = MessageSerializer.readMessage(readChannel)
+    println("msg BB: " + msg.getMessageBuffer)
 
     // TODO: use tensor information to build the right kind of tensor
     val tensor = new Tensor()
     msg.getMessage.header(tensor)
-
-    val arrowBuf = MessageSerializer.readMessageBody(readChannel, msg.getMessageBodyLength.toInt, allocator)
 
     val root = VectorSchemaRoot.create(schema, allocator)
     val vec = new Float8Vector("array", allocator)
@@ -107,6 +120,7 @@ object ArrowTensor {
 
     val tensorSize = shape.product
 
+    val arrowBuf = MessageSerializer.readMessageBody(readChannel, msg.getMessageBodyLength.toInt, allocator)
     vec.setValueCount(tensorSize)
     // TODO: find a way to reference this buffer directly, this is obviously horrible
     for (i <- 0 until tensorSize) vec.set(i, Float8Vector.get(arrowBuf, i))

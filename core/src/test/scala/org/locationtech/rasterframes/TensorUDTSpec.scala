@@ -50,12 +50,13 @@ class TensorUDTSpec extends TestEnvironment with TestData with Inspectors {
 //    }
 //
     it("should (en/de)code tile") {
-      val tensor: ArrowTensor = ArrowTensor.fromArray(
+      val tensor: ArrowTensor  = ArrowTensor.fromArray(
         Array[Double](1,2,3,4), 2,2)
       val row = tensorEncoder.toRow(tensor)
       assert(!row.isNullAt(0))
       val tileAgain = TensorType.deserialize(row.getStruct(0, TensorType.sqlType.size))
-      assert(tileAgain === tensor)
+      assert(tileAgain.shape === tensor.shape)
+      assert(tileAgain.vector.get(0) === tensor.vector.get(0))
     }
 //
 //    it("should extract properties") {

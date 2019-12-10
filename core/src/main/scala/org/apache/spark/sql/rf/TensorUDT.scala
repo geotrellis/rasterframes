@@ -75,16 +75,13 @@ case object TensorUDT  {
       StructField("arrow_tensor", BinaryType, true)
     ))
 
-    override def to[R](t: ArrowTensor, io: CatalystIO[R]): R = io.create(
-      // TODO: encode ArrowTensor into bytes and Byte array here
-      Array.empty[Byte]
-    )
+    override def to[R](t: ArrowTensor, io: CatalystIO[R]): R = io.create {
+      t.toArrowBytes()
+    }
 
     override def from[R](row: R, io: CatalystIO[R]): ArrowTensor = {
       val bytes = io.getByteArray(row, 0)
       ArrowTensor.fromArrowMessage(bytes)
-      // TODO: decode the arrow buffer here
-      ???
     }
   }
 }
