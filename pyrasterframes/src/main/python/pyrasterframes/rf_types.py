@@ -33,11 +33,14 @@ from pyspark.ml.param.shared import HasInputCols
 from pyspark.ml.wrapper import JavaTransformer
 from pyspark.ml.util import JavaMLReadable, JavaMLWritable
 
-from pyrasterframes.rf_context import RFContext
-
+import pyarrow as pa
 import numpy as np
 
-__all__ = ['RasterFrameLayer', 'Tile', 'TileUDT', 'CellType', 'RasterSourceUDT', 'TileExploder', 'NoDataFilter']
+from pyrasterframes.rf_context import RFContext
+
+__all__ = ['RasterFrameLayer', 'Tile', 'TileUDT',
+           'ArrowTensor', 'TensorUDT', 'CellType',
+           'RasterSourceUDT', 'TileExploder', 'NoDataFilter']
 
 
 class RasterFrameLayer(DataFrame):
@@ -456,8 +459,6 @@ class TileUDT(UserDefinedType):
             }, e)
         return t
 
-    deserialize.__safe_for_unpickling__ = True
-
 
 Tile.__UDT__ = TileUDT()
 
@@ -481,3 +482,77 @@ class NoDataFilter(JavaTransformer, HasInputCols, JavaMLReadable, JavaMLWritable
         super(NoDataFilter, self).__init__()
         self._java_obj = self._new_java_obj("org.locationtech.rasterframes.ml.NoDataFilter", self.uid)
 
+
+class RasterSourceUDT(UserDefinedType):
+    @classmethod
+    def sqlType(cls):
+        return StructType([
+            StructField("raster_source_kryo", BinaryType(), False)])
+
+    @classmethod
+    def module(cls):
+        return 'pyrasterframes.rf_types'
+
+    @classmethod
+    def scalaUDT(cls):
+        return 'org.apache.spark.sql.rf.RasterSourceUDT'
+
+    def needConversion(self):
+        return False
+
+    # The contents of a RasterSource is opaque in the Python context.
+    # Just pass data through unmodified.
+    def serialize(self, obj):
+        return obj
+
+    def deserialize(self, datum):
+        return datum
+
+
+class TensorUDT(UserDefinedType):
+    @classmethod
+    def sqlType(cls):
+        return StructType([
+            StructField("arrow_tensor", BinaryType(), True)
+        ])
+
+    @classmethod
+    def module(cls):
+        return 'pyrasterframes.rf_types'
+
+    @classmethod
+    def scalaUDT(cls):
+        return 'org.apache.spark.sql.rf.TensorUDT'
+
+    def serialize(self, obj):
+        tensor = pa.Tensor.from_numpy(obj.ndarray)
+        bos = pa.BufferOutputStream()
+        pa.write_tensor(tensor, bos)
+        buffer = bos.getvalue()
+        return [buffer.to_pybytes()]
+
+    def deserialize(self, datum):
+        br = pa.BufferReader(datum.arrow_tensor)
+        tensor = pa.read_tensor(br)
+        ndarray = tensor.to_numpy()
+        return ArrowTensor(ndarray)
+
+    #deserialize.__safe_for_unpickling__ = True
+
+
+class ArrowTensor(object):
+
+    def __init__(self, ndarray):
+        self.ndarray = ndarray
+
+    def __repr__(self):
+        return "Numpy Tensor of shape {}".format(self.ndarray.shape)
+
+    def __str__(self):
+        return "{}".format(self.ndarray)
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and \
+            np.array_equal(self.ndarray, other.ndarray)
+
+ArrowTensor.__UDT__ = TensorUDT()

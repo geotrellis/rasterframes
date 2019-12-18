@@ -24,8 +24,7 @@ object RFProjectPlugin extends AutoPlugin {
     scalacOptions ++= Seq(
       "-feature",
       "-deprecation",
-      "-Ywarn-dead-code",
-      "-Ywarn-unused-import"
+      "-Ywarn-dead-code"
     ),
     scalacOptions in (Compile, doc) ++= Seq("-no-link-warnings"),
     console / scalacOptions := Seq("-feature"),

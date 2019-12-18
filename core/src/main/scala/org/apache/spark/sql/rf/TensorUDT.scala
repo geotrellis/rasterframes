@@ -30,11 +30,6 @@ import org.locationtech.rasterframes.ref.RasterRef.RasterRefTile
 import org.locationtech.rasterframes.tiles.InternalRowTile
 
 
-/**
-  * UDT for singleband tiles.
-  *
-  * @since 11/18/19
-  */
 @SQLUserDefinedType(udt = classOf[TensorUDT])
 class TensorUDT extends UserDefinedType[ArrowTensor] {
   import TensorUDT._

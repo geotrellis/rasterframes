@@ -1,6 +1,6 @@
 package geotrellis.raster
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, FileInputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.ByteBuffer
 import java.nio.channels.Channels
 
@@ -8,7 +8,7 @@ import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.arrow.flatbuf.{Buffer, Tensor, TensorDim, Type}
 import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.ipc.{ReadChannel, WriteChannel}
-import org.apache.arrow.vector.ipc.message.{ArrowFieldNode, MessageSerializer}
+import org.apache.arrow.vector.ipc.message.MessageSerializer
 import org.apache.arrow.vector.types.FloatingPointPrecision
 import org.apache.arrow.vector.types.pojo.{ArrowType, Field, FieldType, Schema}
 import org.apache.arrow.vector.{Float8Vector, VectorSchemaRoot}
@@ -106,7 +106,7 @@ object ArrowTensor {
     val channel = Channels.newChannel(is)
     val readChannel = new ReadChannel(channel)
     val msg = MessageSerializer.readMessage(readChannel)
-    println("msg BB: " + msg.getMessageBuffer)
+    //println("msg BB: " + msg.getMessageBuffer)
 
     // TODO: use tensor information to build the right kind of tensor
     val tensor = new Tensor()
