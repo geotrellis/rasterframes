@@ -72,7 +72,7 @@ def find_pyrasterframes_assembly():
 
     if not len(jarpath) == 1:
         raise RuntimeError("""
-Expected to find exactly one assembly. Found '{}' instead. 
+Expected to find exactly one assembly. Found '{}' instead.
 Try running 'sbt pyrasterframes/clean pyrasterframes/package' first. """.format(jarpath))
     return jarpath[0]
 
@@ -85,7 +85,7 @@ def create_rf_spark_session(master="local[*]", **kwargs):
         if 'pyrasterframes' not in kwargs['spark.jars']:
             raise UserWarning("spark.jars config is set, but it seems to be missing the pyrasterframes assembly jar.")
 
-    conf = SparkConf().setAll([(k, kwargs[k]) for k in kwargs])
+    conf = SparkConf().setAll([(k, kwargs[k]) for k in kwargs] + [("spark.sql.extensions", "org.locationtech.rasterframes.SparkExtensions")])
 
     spark = (SparkSession.builder
              .master(master)

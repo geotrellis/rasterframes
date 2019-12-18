@@ -48,7 +48,7 @@ def require_minimum_pyarrow_version():
                           "your version was %s." % (minimum_pyarrow_version, pyarrow.__version__))
 
 
-def _create_udf(f, returnType, evalType):
+def _create_raster_udf(f, returnType, evalType):
 
     if evalType in (PythonEvalType.SQL_SCALAR_PANDAS_UDF,
                     PythonEvalType.SQL_GROUPED_MAP_PANDAS_UDF,
@@ -224,7 +224,7 @@ class UserDefinedRasterFunction(object):
 
         wrapped_func = _wrap_function(sc, self.func, self.returnType)
         jdt = spark._jsparkSession.parseDataType(self.returnType.json())
-        judf = sc._jvm.org.apache.spark.sql.execution.python.UserDefinedPythonFunction(
+        judf = sc._jvm.org.apache.spark.sql.rf.UserDefinedRasterFunction(
             self._name, wrapped_func, jdt, self.evalType, self.deterministic)
         return judf
 
@@ -519,4 +519,4 @@ def raster_udf(f=None, returnType=None, functionType=None):
     if is_decorator:
         return functools.partial(_create_udf, returnType=return_type, evalType=eval_type)
     else:
-        return _create_udf(f=f, returnType=return_type, evalType=eval_type)
+        return _create_raster_udf(f=f, returnType=return_type, evalType=eval_type)

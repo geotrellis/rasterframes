@@ -53,6 +53,7 @@ object RFAssemblyPlugin extends AutoPlugin {
         "shapeless",
         "com.amazonaws",
         "org.apache.avro",
+        "org.apache.arrow",
         "org.apache.http",
         "com.google.guava",
         "com.typesafe.scalalogging",
@@ -83,6 +84,8 @@ object RFAssemblyPlugin extends AutoPlugin {
             MergeStrategy.discard
           case ps @ x :: _ if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") ⇒
             MergeStrategy.discard
+          case "io.netty.versions.properties" :: _ ⇒
+            MergeStrategy.concat
           case "plexus" :: _ ⇒
             MergeStrategy.discard
           case "services" :: _ ⇒

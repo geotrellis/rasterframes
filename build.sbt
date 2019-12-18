@@ -86,6 +86,7 @@ lazy val pyrasterframes = project
   .settings(
     libraryDependencies ++= Seq(
       geotrellis("s3").value,
+      arrow("vector").value,
       spark("core").value % Provided,
       spark("mllib").value % Provided,
       spark("sql").value % Provided
@@ -172,4 +173,3 @@ lazy val docs = project
 lazy val bench = project
   .dependsOn(core % "compile->test")
   .settings(publish / skip := true)
-

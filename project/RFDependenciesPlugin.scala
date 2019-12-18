@@ -27,6 +27,7 @@ object RFDependenciesPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
   object autoImport {
     val rfSparkVersion = settingKey[String]("Apache Spark version")
+    val rfArrowVersion = settingKey[String]("Apache Arrow version")
     val rfGeoTrellisVersion = settingKey[String]("GeoTrellis version")
     val rfGeoMesaVersion = settingKey[String]("GeoMesa version")
 
@@ -35,6 +36,9 @@ object RFDependenciesPlugin extends AutoPlugin {
     }
     def spark(module: String) = Def.setting {
       "org.apache.spark" %% s"spark-$module" % rfSparkVersion.value
+    }
+    def arrow(module: String) = Def.setting {
+      "org.apache.arrow" % s"arrow-$module" % rfArrowVersion.value
     }
     def geomesa(module: String) = Def.setting {
       "org.locationtech.geomesa" %% s"geomesa-$module" % rfGeoMesaVersion.value
@@ -60,6 +64,7 @@ object RFDependenciesPlugin extends AutoPlugin {
 
     // NB: Make sure to update the Spark version in pyrasterframes/python/setup.py
     rfSparkVersion := "2.4.4",
+    rfArrowVersion := "0.15.1",
     rfGeoTrellisVersion := "2.3.3",
     rfGeoMesaVersion := "2.2.1",
   )
