@@ -86,11 +86,11 @@ package object rasterframes extends StandardColumns
   /** TileUDT type reference. */
   def TileType = new TileUDT()
 
-  /** TensorUDT type reference. */
-  def TensorType = new TensorUDT()
-
   /** RasterSourceUDT type reference. */
   def RasterSourceType = new RasterSourceUDT()
+
+  /** TensorUDT type reference. */
+  def TensorType = new TensorUDT()
 
   /**
    * A RasterFrameLayer is just a DataFrame with certain invariants, enforced via the methods that create and transform them:

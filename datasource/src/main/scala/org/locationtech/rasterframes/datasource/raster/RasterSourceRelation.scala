@@ -58,18 +58,28 @@ case class RasterSourceRelation(
 
   lazy val inputColNames = catalogTable.bandColumnNames
 
+  println("inputcolname", inputColNames)
+
   def pathColNames = inputColNames
     .map(_ + "_path")
 
+  println("pathcolnames", pathColNames)
+
   def srcColNames = inputColNames
     .map(_ + "_src")
+
+  println("srccolnames", srcColNames)
 
   def refColNames = srcColNames
     .flatMap(bandNames(_, bandIndexes))
     .map(_ + "_ref")
 
+  println("refcolnames", refColNames)
+
   def tileColNames = inputColNames
     .flatMap(bandNames(_, bandIndexes))
+
+  println("tilecolnames", tileColNames)
 
   lazy val extraCols: Seq[StructField] = {
     val catalog = sqlContext.table(catalogTable.tableName)

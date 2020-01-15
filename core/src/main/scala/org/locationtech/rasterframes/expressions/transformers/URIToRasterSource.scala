@@ -51,6 +51,7 @@ case class URIToRasterSource(override val child: Expression)
   override def inputTypes = Seq(StringType)
 
   override protected def nullSafeEval(input: Any): Any =  {
+    //val uriString = input.asInstanceOf[Array[String]].map(_.toString)
     val uriString = input.asInstanceOf[UTF8String].toString
     val uri = URI.create(uriString)
     val ref = RasterSource(uri)

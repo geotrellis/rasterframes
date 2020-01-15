@@ -103,6 +103,10 @@ object RasterSource extends LazyLogging {
     RasterSourceUDT // Makes sure UDT is registered first
     ExpressionEncoder()
   }
+  implicit def rsArrayEncoder: ExpressionEncoder[Array[RasterSource]] = {
+    RasterSourceUDT // Makes sure UDT is registered first
+    ExpressionEncoder()
+  }
 
   def apply(source: URI): RasterSource =
     rsCache.get(
