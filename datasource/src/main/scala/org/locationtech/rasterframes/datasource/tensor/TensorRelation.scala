@@ -108,8 +108,9 @@ case class TensorRelation(
       //   .select(paths :+ refs: _*)
       //   .select(paths ++ refsToTiles ++ extras: _*)
       // refsToTiles
-      val tensor = RasterRefStackToTensor(refs.asInstanceOf[Column]) as "tensor"
-      rsDataFrame.withColumn("tensor", tensor)
+      val hold = rsDataFrame.withColumn("ref_stack", refs)
+      hold.printSchema
+      hold.withColumn("tensor", RasterRefStackToTensor('ref_stack) as "tensor")
     }
 
     if (spatialIndexPartitions.isDefined) {

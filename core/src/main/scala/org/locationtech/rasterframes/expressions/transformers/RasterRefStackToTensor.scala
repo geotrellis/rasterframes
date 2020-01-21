@@ -22,6 +22,7 @@
 package org.locationtech.rasterframes.expressions.transformers
 
 import com.typesafe.scalalogging.Logger
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.expressions.{ExpectsInputTypes, Expression, UnaryExpression}
 import org.apache.spark.sql.types.{DataType, StructField, StructType, ArrayType}
@@ -50,9 +51,7 @@ case class RasterRefStackToTensor(child: Expression) extends UnaryExpression
 
   override def nodeName: String = "raster_ref_stack_to_tensor"
 
-  override def inputTypes = Seq(StructType(
-    Array(StructField("tensor", ArrayType(schemaOf[RasterRef]), true))
-  ))
+  override def inputTypes = Seq(ArrayType(schemaOf[RasterRef]))
 
   override def dataType: DataType = schemaOf[ArrowTensor]
 
@@ -60,11 +59,10 @@ case class RasterRefStackToTensor(child: Expression) extends UnaryExpression
     implicit val ser = TensorUDT.tensorSerializer
     input match {
       case values: ArrayData =>
-        val arrays = values.array.map { r =>
-          val rref = row(r).to[RasterRef]
-          rref.tile.toArrayDouble
-        }
-        arrays
+        val refs = values.toSeq[InternalRow](dataType).map(_.to[RasterRef])
+
+        // TODO convert band tiles to Tensor
+        refs.head.tile.toInternalRow
       case other => sys.error(s"Cannot deserialize $other")
     }
   }
