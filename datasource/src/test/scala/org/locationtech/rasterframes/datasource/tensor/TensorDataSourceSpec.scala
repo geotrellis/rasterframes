@@ -131,6 +131,25 @@ class TensorDataSourceSpec extends TestEnvironment with TestData {
       exploded.printSchema
       exploded.show(2000)
     }
+    it("should make a bunch of vectors") {
+      import org.locationtech.rasterframes.expressions.transformers._
+      val buffer = 2
+      val df = spark.read
+        .tensor
+        .from("file:/tmp/tif-%02d.tif")
+        .withBandIndexes(0, 1, 2)
+        .withBuffer(buffer)
+        .withTileDimensions(128,128)
+        .load()
+
+      df.printSchema
+      df.show
+
+      import org.locationtech.rasterframes.expressions.generators.ExplodeTensors
+      val exploded = df.select(ExplodeTensors(col("tensor")))
+      exploded.printSchema
+      exploded.show(2000)
+    }
   //   it("should read a multiband file") {
   //     val df = spark.read
   //       .raster
