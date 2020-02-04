@@ -68,35 +68,33 @@ case class ExplodeTensors(
 
   override def eval(input: InternalRow): TraversableOnce[InternalRow] = {
     val row = child.eval(input).asInstanceOf[InternalRow]
-    val bufTensor =
-      if(row != null)
-        DynamicExtractors.bufferedTensorExtractor(child.dataType)(row)._1
-      else throw new Exception("I don't know.")
+    if (row == null) {
+      Traversable.empty[InternalRow]
+    } else {
+      val bufTensor = DynamicExtractors.bufferedTensorExtractor(child.dataType)(row)._1
 
-    //val bufTensor = child.eval(input).asInstanceOf[BufferedTensor]
+      val depth = bufTensor.tensor.shape(0)
+      val cols = bufTensor.tensor.shape(1)
+      val rows = bufTensor.tensor.shape(2)
 
-    val depth = bufTensor.tensor.shape(0)
-    val cols = bufTensor.tensor.shape(1)
-    val rows = bufTensor.tensor.shape(2)
-
-    val udt = new VectorUDT()
-    val retval = Array.ofDim[InternalRow](cols * rows)
-    cfor(0)(_ < cols, _ + 1) { col =>
-      cfor(0)(_ < rows, _ + 1) { row =>
-        cfor(0)(_ < depth, _ + 1) { band =>
-          val rowIndex = row * cols + col
-          val index = band * row * col
-          val outCols = Array.ofDim[Any](3)
-          outCols(0) = col
-          outCols(1) = row
-          outCols(2) = udt.serialize(bufTensor.tensor.getPixelVector(col, row))
-          retval(rowIndex) = new GenericInternalRow(outCols)
-          //outCols(index + 2) = if(tile == null) doubleNODATA else tile.getDouble(col, row)
+      val udt = new VectorUDT()
+      val retval = Array.ofDim[InternalRow](cols * rows)
+      cfor(0)(_ < cols, _ + 1) { col =>
+        cfor(0)(_ < rows, _ + 1) { row =>
+          cfor(0)(_ < depth, _ + 1) { band =>
+            val rowIndex = row * cols + col
+            val index = band * row * col
+            val outCols = Array.ofDim[Any](3)
+            outCols(0) = col
+            outCols(1) = row
+            outCols(2) = udt.serialize(bufTensor.tensor.getPixelVector(col, row))
+            retval(rowIndex) = new GenericInternalRow(outCols)
+          }
         }
       }
+      if(sampleFraction > 0.0 && sampleFraction < 1.0) sample(retval)
+      else retval
     }
-    if(sampleFraction > 0.0 && sampleFraction < 1.0) sample(retval)
-    else retval
   }
 }
 
@@ -107,7 +105,6 @@ object ExplodeTensors {
 
   def apply(sampleFraction: Double, seed: Option[Long], col: Column): Column = {
     val exploder = new ExplodeTensors(sampleFraction, seed, col.expr)
-    // Hack to grab the first two non-cell columns, containing the column and row indexes
     new Column(exploder)
   }
 }
