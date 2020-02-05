@@ -94,7 +94,7 @@ class TensorDataSourceSpec extends TestEnvironment with TestData {
   //     tcols.length should be(1)
   //     tcols.map(_.columnName) should contain(DEFAULT_COLUMN_NAME)
   //   }
-    it("should serialize appropriately during ingest") {
+    it("should serialize tensor context appropriately during ingest") {
       val buffer = 2
       val df = spark.read
         .tensor
@@ -106,19 +106,20 @@ class TensorDataSourceSpec extends TestEnvironment with TestData {
 
       df.printSchema
       df.show
-      df.select($"tensorData.tensor_context.extent").show
+      df.select($"tensor_data.tensor_context.extent").show
 
       // to dataset (this doesn't work due to a lack of Encoder[CRS] - unclear why at the moment)
       // import org.locationtech.rasterframes.encoders.StandardEncoders._
       // val ds = df.as[ProjectedBufferedTensor]
       // ds.first.tensor.bufferCols shouldBe (buffer)
     }
-    it("should make a bunch of vectors") {
+    it("should explode a tensor into a bunch of vectors") {
       import org.locationtech.rasterframes.expressions.transformers._
       val buffer = 2
       val df = spark.read
         .tensor
         .from("file:/tmp/tif-%02d.tif")
+        .usePatternExpansion(true)
         .withBandIndexes(0, 1, 2)
         .withBuffer(buffer)
         .withTileDimensions(128,128)
@@ -127,27 +128,12 @@ class TensorDataSourceSpec extends TestEnvironment with TestData {
       df.printSchema
       df.show
 
-      val exploded = df.select(rf_explode_tensor(col("tensor")))
+      val exploded = df.select(
+        col("tensor_data.tensor_context"),
+        rf_explode_tensor_sample(col("tensor_data.tensor"), 0.2)
+      )
       exploded.printSchema
-      exploded.show(2000)
-    }
-    it("should make a bunch of vectors") {
-      import org.locationtech.rasterframes.expressions.transformers._
-      val buffer = 2
-      val df = spark.read
-        .tensor
-        .from("file:/tmp/tif-%02d.tif")
-        .withBandIndexes(0, 1, 2)
-        .withBuffer(buffer)
-        .withTileDimensions(128,128)
-        .load()
-
-      df.printSchema
-      df.show
-
-      val exploded = df.select(rf_explode_tensor(col("tensor")))
-      exploded.printSchema
-      exploded.show(2000)
+      exploded.show
     }
   //   it("should read a multiband file") {
   //     val df = spark.read
