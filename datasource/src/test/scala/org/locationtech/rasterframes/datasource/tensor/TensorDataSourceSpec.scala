@@ -145,8 +145,7 @@ class TensorDataSourceSpec extends TestEnvironment with TestData {
       df.printSchema
       df.show
 
-      import org.locationtech.rasterframes.expressions.generators.ExplodeTensors
-      val exploded = df.select(ExplodeTensors(col("tensor")))
+      val exploded = df.select(rf_explode_tensor(col("tensor")))
       exploded.printSchema
       exploded.show(2000)
     }
