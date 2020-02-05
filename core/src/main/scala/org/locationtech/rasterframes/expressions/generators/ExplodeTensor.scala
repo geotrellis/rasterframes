@@ -41,12 +41,12 @@ import org.apache.spark.ml.linalg.SQLDataTypes.VectorType
  *
  * @since 4/12/17
  */
-case class ExplodeTensors(
-  sampleFraction: Double , seed: Option[Long], override val child: Expression)
-  extends UnaryExpression with Generator with CodegenFallback with ExpectsInputTypes {
+case class ExplodeTensor(
+  override val child: Expression, sampleFraction: Double , seed: Option[Long]
+) extends UnaryExpression with Generator with CodegenFallback with ExpectsInputTypes {
 
-  def this(child: Expression) = this(1.0, None, child)
-  override def nodeName: String = "rf_explode_tensors"
+  def this(child: Expression) = this(child, 1.0, None)
+  override def nodeName: String = "rf_explode_tensor"
 
   override def inputTypes: Seq[DataType] = Seq(BufferedTensorType)
 
@@ -98,13 +98,13 @@ case class ExplodeTensors(
   }
 }
 
-object ExplodeTensors {
+object ExplodeTensor {
   def apply(col: Column): Column = {
-    ExplodeTensors(1.0, None, col)
+    ExplodeTensor(col, 1.0, None)
   }
 
-  def apply(sampleFraction: Double, seed: Option[Long], col: Column): Column = {
-    val exploder = new ExplodeTensors(sampleFraction, seed, col.expr)
+  def apply(col: Column, sampleFraction: Double, seed: Option[Long]): Column = {
+    val exploder = new ExplodeTensor(col.expr, sampleFraction, seed)
     new Column(exploder)
   }
 }
