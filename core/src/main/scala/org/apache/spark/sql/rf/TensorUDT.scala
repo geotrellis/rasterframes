@@ -26,31 +26,32 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.{DataType, _}
 import org.locationtech.rasterframes.encoders.CatalystSerializer
 import org.locationtech.rasterframes.encoders.CatalystSerializer._
-import org.locationtech.rasterframes.model.{Cells, TileDataContext}
-import org.locationtech.rasterframes.ref.RasterRef.RasterRefTile
-import org.locationtech.rasterframes.tiles.InternalRowTile
+import org.locationtech.rasterframes.model.{Voxels, TensorDataContext}
+import org.locationtech.rasterframes.ref.DeferredTensorRef
+//import org.locationtech.rasterframes.ref.RasterRef.RasterRefTile
+import org.locationtech.rasterframes.tensors.{RFTensor, InternalRowTensor}
 
 
 @SQLUserDefinedType(udt = classOf[TensorUDT])
-class TensorUDT extends UserDefinedType[ArrowTensor] {
+class TensorUDT extends UserDefinedType[RFTensor] {
   import TensorUDT._
   override def typeName = TensorUDT.typeName
 
   override def pyUDT: String = "pyrasterframes.rf_types.TensorUDT"
 
-  def userClass: Class[ArrowTensor] = classOf[ArrowTensor]
+  def userClass: Class[RFTensor] = classOf[RFTensor]
 
-  def sqlType: StructType = schemaOf[ArrowTensor]
+  def sqlType: StructType = schemaOf[RFTensor]
 
-  override def serialize(obj: ArrowTensor): InternalRow =
+  override def serialize(obj: RFTensor): InternalRow =
     Option(obj)
       .map(_.toInternalRow)
       .orNull
 
-  override def deserialize(datum: Any): ArrowTensor =
+  override def deserialize(datum: Any): RFTensor =
     Option(datum)
       .collect {
-        case ir: InternalRow ⇒ ir.to[ArrowTensor]
+        case ir: InternalRow ⇒ ir.to[RFTensor]
       }
       .orNull
 
@@ -61,23 +62,34 @@ class TensorUDT extends UserDefinedType[ArrowTensor] {
 }
 
 case object TensorUDT  {
-  UDTRegistration.register(classOf[ArrowTensor].getName, classOf[TensorUDT].getName)
+  UDTRegistration.register(classOf[RFTensor].getName, classOf[TensorUDT].getName)
 
   final val typeName: String = "tensor"
 
-  implicit def tensorSerializer: CatalystSerializer[ArrowTensor] = new CatalystSerializer[ArrowTensor] {
+  implicit def tensorSerializer: CatalystSerializer[RFTensor] = new CatalystSerializer[RFTensor] {
 
     override val schema: StructType = StructType(Seq(
-      StructField("arrow_tensor", BinaryType, true)
+      StructField("tensor_context", schemaOf[TensorDataContext], true),
+      StructField("tensor_data", schemaOf[Voxels], false)
     ))
 
-    override def to[R](t: ArrowTensor, io: CatalystIO[R]): R = io.create {
-      t.toArrowBytes()
-    }
+    override def to[R](t: RFTensor, io: CatalystIO[R]): R = io.create(
+      t match {
+        case _: DeferredTensorRef => null
+        case o => io.to(TensorDataContext(o))
+      },
+      io.to(Voxels(t))
+    )
 
-    override def from[R](row: R, io: CatalystIO[R]): ArrowTensor = {
-      val bytes = io.getByteArray(row, 0)
-      ArrowTensor.fromArrowMessage(bytes)
+    override def from[R](row: R, io: CatalystIO[R]): RFTensor = {
+      val voxels = io.get[Voxels](row, 1)
+
+      row match {
+        case ir: InternalRow if !voxels.isRef ⇒ new InternalRowTensor(ir)
+        case _ ⇒
+          val ctx = io.get[TensorDataContext](row, 0)
+          voxels.toTensor
+      }
     }
   }
 }

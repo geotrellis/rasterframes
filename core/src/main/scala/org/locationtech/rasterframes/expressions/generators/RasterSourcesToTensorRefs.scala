@@ -47,7 +47,7 @@ import scala.util.control.NonFatal
  * @since 9/6/18
  */
 // BUFFER HERE
-case class RasterSourcesToTensorRefs(child: Expression, subtileDims: Option[TileDimensions] = None) extends UnaryExpression
+case class RasterSourcesToTensorRefs(child: Expression, subtileDims: Option[TileDimensions] = None, bufferPixels: Int = 0) extends UnaryExpression
   with Generator with CodegenFallback with ExpectsInputTypes {
     import TensorRef._
     import org.locationtech.rasterframes.expressions.transformers.PatternToRasterSources._
@@ -78,14 +78,11 @@ case class RasterSourcesToTensorRefs(child: Expression, subtileDims: Option[Tile
 
       val sampleRS = rss.head.source
 
-      val maybeSubs = subtileDims.map { dims =>
-        val subGB = sampleRS.layoutBounds(dims)
-        subGB.map(gb => (gb, sampleRS.rasterExtent.extentFor(gb, clamp = true)))
-      }
+      val maybeSubs = subtileDims.map { dims => sampleRS.layoutBounds(dims) }
 
       val trefs = maybeSubs.map { subs =>
-        subs.map { case (gb, extent) => TensorRef(rss, Some(extent), Some(gb)) }
-      }.getOrElse(Seq(TensorRef(rss, None, None)))
+        subs.map { gb => TensorRef(rss, Some(gb), bufferPixels) }
+      }.getOrElse(Seq(TensorRef(rss, None, bufferPixels)))
 
       trefs.map{ tref => InternalRow(tref.toInternalRow) }
     }

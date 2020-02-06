@@ -42,15 +42,13 @@ import org.locationtech.rasterframes.expressions.transformers.PatternToRasterSou
  *
  * @since 8/21/18
  */
-case class TensorRef(sources: Seq[RasterSourceWithBand], subextent: Option[Extent], subgrid: Option[GridBounds])
+case class TensorRef(sources: Seq[RasterSourceWithBand], subgrid: Option[GridBounds], bufferPixels: Int = 0)
   extends ProjectedRasterLike {
   def sample = sources.head.source
   def crs: CRS = sample.crs
   def cols: Int = grid.width
   def rows: Int = grid.height
   def cellType: CellType = sample.cellType
-  //def tile: ProjectedRasterTile = RasterRefTile(this)
-
 
   protected lazy val grid: GridBounds =
     subgrid.getOrElse(sample.rasterExtent.gridBoundsFor(extent, true))
@@ -58,20 +56,23 @@ case class TensorRef(sources: Seq[RasterSourceWithBand], subextent: Option[Exten
   // This should correspond to the gridded region to which this tensor reference refers
   lazy val extent: Extent = RasterExtent(sample.extent, sample.cellSize).extentFor(grid)
 
-  lazy val realizedTensor: ArrowTensor = {
-    //RasterRef.log.trace(s"Fetching $extent ($grid) from band $bandIndex of $sample")
-    val tiles = sources.map({ case RasterSourceWithBand(rs, band) =>
-      rs.read(grid, Seq(band)).tile.band(0)
-    })
-    ArrowTensor.stackTiles(tiles)
-  }
+  // lazy val realizedTensor: ArrowTensor = {
+  //   //RasterRef.log.trace(s"Fetching $extent ($grid) from band $bandIndex of $sample")
+  //   val tiles = sources.map({ case RasterSourceWithBand(rs, band) =>
+  //     rs.read(grid, Seq(band)).tile.band(0)
+  //   })
+  //   ArrowTensor.stackTiles(tiles)
+  // }
 
-  def realizedTensor(bufferPixels: Int): ProjectedBufferedTensor = {
+  def tensor: DeferredTensorRef = DeferredTensorRef(this)
+
+  lazy val realizedTensor: ProjectedBufferedTensor = {
     //RasterRef.log.trace(s"Fetching $extent ($grid) from band $bandIndex of $sample")
     val bufferedGrid = grid.buffer(bufferPixels)
 
     val tiles = sources.map({ case RasterSourceWithBand(rs, band) =>
       val tile = rs.read(bufferedGrid, Seq(band)).tile.band(0)
+      //val tile = RasterRef(rs, band, bufferedGrid, bufferPixels)// .read(bufferedGrid, Seq(band)).tile.band(band)
 
       val rsBounds =
         GridBounds(0, 0, rs.cols - 1, rs.rows - 1)
@@ -144,16 +145,13 @@ object TensorRef extends LazyLogging {
 
     override def to[R](t: TensorRef, io: CatalystIO[R]): R = io.create(
       io.toSeq(t.sources),
-      t.subextent.map(io.to[Extent]).orNull,
       t.subgrid.map(io.to[GridBounds]).orNull
     )
 
     override def from[R](row: R, io: CatalystIO[R]): TensorRef = TensorRef(
       io.getSeq[RasterSourceWithBand](row, 0),
-      if (io.isNullAt(row, 1)) None
-      else Option(io.get[Extent](row, 1)),
       if (io.isNullAt(row, 2)) None
-      else Option(io.get[GridBounds](row, 2))
+      else Option(io.get[GridBounds](row, 1))
     )
   }
 

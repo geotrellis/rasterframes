@@ -55,9 +55,7 @@ case class TensorRefToTensor(child: Expression, bufferPixels: Int) extends Unary
   override protected def nullSafeEval(input: Any): Any = {
     implicit val ser = ProjectedBufferedTensor.serializer
     val ref = row(input).to[TensorRef]
-    val realized = ref.realizedTensor(bufferPixels)
-
-    realized.toInternalRow
+    ref.tensor.toInternalRow
   }
 }
 
