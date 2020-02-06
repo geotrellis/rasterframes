@@ -34,6 +34,7 @@ import org.locationtech.jts.geom.{Envelope, Point}
 import org.locationtech.rasterframes.encoders.CatalystSerializer._
 import org.locationtech.rasterframes.model.{LazyCRS, TileContext}
 import org.locationtech.rasterframes.ref.{ProjectedRasterLike, RasterRef, RasterSource}
+import org.locationtech.rasterframes.tensors.RFTensor
 import org.locationtech.rasterframes.tiles.ProjectedRasterTile
 
 private[rasterframes]
@@ -95,7 +96,7 @@ object DynamicExtractors {
     case _: TileUDT =>
       (row: InternalRow) => row.to[Tile](TileUDT.tileSerializer)
     case _: TensorUDT =>
-      (row: InternalRow) => row.to[ArrowTensor](TensorUDT.tensorSerializer)
+      (row: InternalRow) => row.to[RFTensor](TensorUDT.tensorSerializer)
     case _: BufferedTensorUDT =>
       (row: InternalRow) => row.to[BufferedTensor](BufferedTensorUDT.bufferedTensorSerializer)
     case _: RasterSourceUDT =>

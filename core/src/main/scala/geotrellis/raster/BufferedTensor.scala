@@ -26,7 +26,7 @@ case class BufferedTensor(
   val bufferRows: Int,
   val bufferCols: Int,
   val extent: Option[Extent]
-) extends CellGrid {
+) extends RFTensor {
 
   val cellType = DoubleCellType
 

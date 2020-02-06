@@ -15,16 +15,16 @@ import org.apache.arrow.vector.{Float8Vector, VectorSchemaRoot}
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 
 import org.locationtech.rasterframes.encoders.CatalystSerializerEncoder
+import org.locationtech.rasterframes.tensors.RFTensor
 
 import spire.syntax.cfor._
 
 import scala.collection.JavaConverters._
 
-case class ArrowTensor(val vector: Float8Vector, val shape: Seq[Int]) extends CellGrid {
+
+
+case class ArrowTensor(val vector: Float8Vector, val shape: Seq[Int]) extends RFTensor {
   // TODO: Should we be using ArrowBuf here directly, since Arrow Tensor can not have pages?
-  def rows = shape(1)
-  def cols = shape(2)
-  val cellType = DoubleCellType
 
   // TODO: Figure out how to work this crazy thing
   // def copy(implicit alloc: BufferAllocator) = {
@@ -189,8 +189,8 @@ case class ArrowTensor(val vector: Float8Vector, val shape: Seq[Int]) extends Ce
 
 object ArrowTensor {
   import org.apache.spark.sql.rf.TensorUDT._
-  implicit val arrowTensorEncoder: ExpressionEncoder[ArrowTensor] =
-    CatalystSerializerEncoder[ArrowTensor](true)
+  implicit val arrowTensorEncoder: ExpressionEncoder[RFTensor] =
+    CatalystSerializerEncoder[RFTensor](true)
 
   val allocator = new RootAllocator(Long.MaxValue)
 

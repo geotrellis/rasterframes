@@ -28,6 +28,7 @@ import org.apache.spark.sql.catalyst.analysis.TypeCheckResult.{TypeCheckFailure,
 import org.apache.spark.sql.catalyst.expressions.BinaryExpression
 import org.apache.spark.sql.rf.{TileUDT, TensorUDT}
 import org.apache.spark.sql.types.DataType
+import org.locationtech.rasterframes.tensors.RFTensor
 import org.locationtech.rasterframes.encoders.CatalystSerializer._
 import org.locationtech.rasterframes.expressions.DynamicExtractors._
 import org.slf4j.LoggerFactory
@@ -92,9 +93,9 @@ trait BinaryLocalRasterOp extends BinaryExpression {
     }
 
     (context, isTensor) match {
-      case (Some(ctx), true) ⇒ result.asInstanceOf[ArrowTensor].toInternalRow
+      case (Some(ctx), true) ⇒ result.asInstanceOf[RFTensor].toInternalRow
       case (Some(ctx), false) ⇒ ctx.toProjectRasterTile(result.asInstanceOf[Tile]).toInternalRow
-      case (None, true) ⇒ result.asInstanceOf[ArrowTensor].toInternalRow
+      case (None, true) ⇒ result.asInstanceOf[RFTensor].toInternalRow
       case (None, false) ⇒ result.asInstanceOf[Tile].toInternalRow
     }
   }
