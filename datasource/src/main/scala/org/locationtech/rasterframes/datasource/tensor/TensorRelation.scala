@@ -85,9 +85,6 @@ case class TensorRelation(
       catalog.select(refs).select(tens)
     }
 
-    println("This is the schema:")
-    df.printSchema
-
     if (spatialIndexPartitions.isDefined) {
       val indexed = df
         .withColumn("spatial_index", XZ2Indexer(GetExtent(col("tensor_ref")), GetCRS(col("tensor_ref"))))

@@ -250,14 +250,6 @@ def _tensor_reader(
         expand_pattern=False,
         **options):
     """
-    Returns a Spark DataFrame from raster data files specified by URIs.
-    Each row in the returned DataFrame will contain a column with struct of (CRS, Extent, Tile) for each item in
-      `catalog_col_names`.
-    Multiple bands from the same raster file are spread across rows of the DataFrame. See `band_indexes` param.
-    If bands from a scene are stored in separate files, provide a DataFrame to the `path` parameter.
-
-    For more details and example usage, consult https://rasterframes.io/raster-read.html
-
     :param path: a (optionally comma-delimeted) string or list of strings giving URI patterns to the raster data to read.  Patterns will be formatted in printf style with a single '%d' format specifier where the band number will be used to exand the pattern into the final source file name.  Must specify band_indexes for the expansion to occur.
     :param band_indexes: list of zero-based indexes used for pattern expansion.  If omitted, pattern expansion will be skipped.
     :param tile_dimensions: tuple or list of two indicating the default tile dimension as (rows, columns).

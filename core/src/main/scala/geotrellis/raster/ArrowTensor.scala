@@ -13,6 +13,7 @@ import org.apache.arrow.vector.types.FloatingPointPrecision
 import org.apache.arrow.vector.types.pojo.{ArrowType, Field, FieldType, Schema}
 import org.apache.arrow.vector.{Float8Vector, VectorSchemaRoot}
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
+import org.apache.spark.mllib.linalg.{Vector, Vectors}
 
 import org.locationtech.rasterframes.encoders.CatalystSerializerEncoder
 
@@ -22,8 +23,8 @@ import scala.collection.JavaConverters._
 
 case class ArrowTensor(val vector: Float8Vector, val shape: Seq[Int]) extends CellGrid {
   // TODO: Should we be using ArrowBuf here directly, since Arrow Tensor can not have pages?
-  def rows = shape(1)
-  def cols = shape(2)
+  lazy val rows = shape(1)
+  lazy val cols = shape(2)
   val cellType = DoubleCellType
 
   // TODO: Figure out how to work this crazy thing
@@ -86,6 +87,21 @@ case class ArrowTensor(val vector: Float8Vector, val shape: Seq[Int]) extends Ce
       }
     }
     ArrowTensor(result, shape)
+  }
+
+  def getPixelVector(col: Int, row: Int): Vector = {
+    val pixelStack =
+      for (depth <- 0 until shape(0)) yield {
+    //    println("handling depth: ", depth)
+        val i = depth * rows * cols + row * cols + col
+        if (vector.isNull(i))
+          Double.NaN
+        else
+          vector.get(i)
+      }
+   //   println("pixel stack", pixelStack.toList)
+
+    Vectors.dense(pixelStack.toArray)
   }
 
   def sliceBands(bands: Seq[Int]): ArrowTensor = {
@@ -253,12 +269,14 @@ object ArrowTensor {
   }
 
   def stackTiles(others: Seq[Tile]): ArrowTensor = {
-    assert(others.size > 0, "Cannot stack an empty set of tensors!")
-    assert(others.map(_.rows).toSet.size == 1 && others.map(_.cols).toSet.size == 1,
-           "All tiles must have equal number of rows and columns!")
+    val rowSet = others.map(_.rows).toSet
+    val colSet = others.map(_.cols).toSet
+    assert(others.size > 0, "Cannot stack an empty set of tiles!")
+    assert(rowSet.size == 1 && colSet.size == 1,
+      "All tiles must have equal number of rows and columns!")
 
-    val rows = others.head.rows
-    val cols = others.head.cols
+    val rows = rowSet.head
+    val cols = colSet.head
     val bands = others.length
     val newSize = rows * cols * bands
 

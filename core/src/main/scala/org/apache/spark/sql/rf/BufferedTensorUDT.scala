@@ -66,7 +66,7 @@ class BufferedTensorUDT extends UserDefinedType[BufferedTensor] {
   }
 }
 
-case object BufferedTensorUDT  {
+object BufferedTensorUDT  {
   @transient protected lazy val logger = Logger(LoggerFactory.getLogger(getClass.getName))
 
   UDTRegistration.register(classOf[BufferedTensor].getName, classOf[BufferedTensorUDT].getName)

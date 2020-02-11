@@ -140,6 +140,9 @@ class PyRFContext(implicit sparkSession: SparkSession) extends RasterFunctions
   def rf_explode_tiles_sample(sampleFraction: Double, seed: Long, cols: Column*): Column =
     rf_explode_tiles_sample(sampleFraction, Some(seed), cols: _*)
 
+  def rf_explode_tensor_sample(col: Column, sampleFraction: Double, seed: Long): Column =
+    rf_explode_tensor_sample(col, sampleFraction, Some(seed))
+
   def tileColumns(df: DataFrame): Array[Column] =
     df.asLayer.tileColumns.toArray
 

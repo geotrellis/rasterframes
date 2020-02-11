@@ -50,6 +50,18 @@ object DynamicExtractors {
     //   }
   }
 
+  lazy val bufferedTensorExtractor: PartialFunction[DataType, InternalRow => (BufferedTensor, Option[TileContext])] = {
+    case _: BufferedTensorUDT =>
+      (row: InternalRow) =>
+        (row.to[BufferedTensor](BufferedTensorUDT.bufferedTensorSerializer), None)
+    // We could use something like the following to associate a projection with a Tensor
+    // case t if t.conformsTo[ProjectedRasterTile] =>
+    //   (row: InternalRow) => {
+    //     val prt = row.to[ProjectedRasterTile]
+    //     (prt, Some(TileContext(prt)))
+    //   }
+  }
+
   /** Partial function for pulling a tile and its context from an input row. */
   lazy val tileExtractor: PartialFunction[DataType, InternalRow => (Tile, Option[TileContext])] = {
     case _: TileUDT =>

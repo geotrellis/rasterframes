@@ -560,4 +560,16 @@ trait RasterFunctions {
   /* TENSOR FUNCTIONS --------------------------------------------------*/
 
   def rf_stack_tensors(cols: Column*): Column = StackTensors(cols)
+
+  /** Create a row for each set of cells in 2d Tensor slice. */
+  def rf_explode_tensor(col: Column): Column =
+    rf_explode_tensor_sample(col, 1.0, None)
+
+  /** Create a row for each set of cells in 2d Tensor slice with random sampling. */
+  def rf_explode_tensor_sample(col: Column, sampleFraction: Double): Column =
+    rf_explode_tensor_sample(col, sampleFraction, None)
+
+  /** Create a row for each set of cells in 2d Tensor slice with random sampling (optional seed). */
+  def rf_explode_tensor_sample(col: Column, sampleFraction: Double, seed: Option[Long]): Column =
+    ExplodeTensor(col, sampleFraction, seed)
 }

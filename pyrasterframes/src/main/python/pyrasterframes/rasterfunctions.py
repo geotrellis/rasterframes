@@ -138,6 +138,20 @@ def rf_explode_tiles_sample(sample_frac, seed, *tile_cols):
     return Column(jfcn(sample_frac, seed, RFContext.active().list_to_seq(jcols)))
 
 
+def rf_explode_tensor(tensor_col):
+    """Create a row for each cell in Tile."""
+    jfcn = RFContext.active().lookup('rf_explode_tensor')
+    jcol = _to_java_column(tensor_col)
+    return Column(jfcn(jcol))
+
+
+def rf_explode_tensor_sample(sample_frac, seed, tensor_col):
+    """Create a row for a sample of cells in Tile columns."""
+    jfcn = RFContext.active().lookup('rf_explode_tensor_sample')
+    jcol = _to_java_column(tensor_col)
+    return Column(jfcn(jcol, sample_frac, seed))
+
+
 def rf_stack_tensors(*tile_cols):
     """Join a set of tensors into a single tensor."""
     jfcn = RFContext.active().lookup('rf_stack_tensors')

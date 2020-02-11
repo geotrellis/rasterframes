@@ -72,8 +72,7 @@ case class PatternToRasterSources(override val child: Expression, bands: Option[
           .getOrElse(Seq(0))
           .map((pattern, _))
       }
-
-    val expanded = sources.map{ case (str, bnd) => RasterSourceWithBand(RasterSource(URI.create(str)), bnd) }
+    val expanded = sources.map({ case (str, bnd) => RasterSourceWithBand(RasterSource(URI.create(str)), bnd) })
 
     new GenericArrayData(expanded.map(_.toInternalRow))
   }
