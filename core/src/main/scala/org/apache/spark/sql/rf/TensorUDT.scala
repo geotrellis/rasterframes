@@ -26,9 +26,9 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.{DataType, _}
 import org.locationtech.rasterframes.encoders.CatalystSerializer
 import org.locationtech.rasterframes.encoders.CatalystSerializer._
-import org.locationtech.rasterframes.model.{Cells, TileDataContext}
+import org.locationtech.rasterframes.model.{TensorData, TensorDataContext}
 import org.locationtech.rasterframes.ref.RasterRef.RasterRefTile
-import org.locationtech.rasterframes.tiles.InternalRowTile
+import org.locationtech.rasterframes.tensors.{RFTensor, InternalRowTensor}
 
 
 @SQLUserDefinedType(udt = classOf[TensorUDT])
@@ -68,16 +68,27 @@ case object TensorUDT  {
   implicit def tensorSerializer: CatalystSerializer[ArrowTensor] = new CatalystSerializer[ArrowTensor] {
 
     override val schema: StructType = StructType(Seq(
-      StructField("arrow_tensor", BinaryType, true)
+      StructField("tensor_context", schemaOf[TensorDataContext], false),
+      StructField("tensor_data", schemaOf[TensorData], true)
     ))
 
-    override def to[R](t: ArrowTensor, io: CatalystIO[R]): R = io.create {
-      t.toArrowBytes()
+    override def to[R](t: RFTensor, io: CatalystIO[R]): R = io.create {
+      t match {
+        case delayed: TensorRef.Delay => null
+        case o => io.to(TensorDataContext(o))
+      },
+      io.to(TensorData(t.toArrowBytes()))
     }
 
-    override def from[R](row: R, io: CatalystIO[R]): ArrowTensor = {
-      val bytes = io.getByteArray(row, 0)
-      ArrowTensor.fromArrowMessage(bytes)
+    override def from[R](row: R, io: CatalystIO[R]): RFTensor = {
+      val data = io.get[TensorData](row, 1)
+
+      row match {
+        case ir: InternalRow if !data.isRef ⇒ new InternalRowTensor(ir)
+        case _ ⇒
+          val ctx = io.get[TensorDataContext](row, 0)
+          data.toTensor(ctx)
+      }
     }
   }
 }

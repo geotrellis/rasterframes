@@ -33,7 +33,7 @@ import org.locationtech.rasterframes.BufferedTensorType
 import org.locationtech.rasterframes.encoders.CatalystSerializer._
 import org.locationtech.rasterframes.expressions.row
 import org.locationtech.rasterframes.ref.TensorRef
-import org.locationtech.rasterframes.tensors.ProjectedBufferedTensor
+import org.locationtech.rasterframes.tensors.{ProjectedBufferedTensor, RFTensor}
 import org.locationtech.rasterframes.encoders.StandardEncoders._
 import org.locationtech.rasterframes.encoders._
 
@@ -53,11 +53,10 @@ case class TensorRefToTensor(child: Expression, bufferPixels: Int) extends Unary
   override def dataType: DataType = schemaOf[ProjectedBufferedTensor]
 
   override protected def nullSafeEval(input: Any): Any = {
-    implicit val ser = ProjectedBufferedTensor.serializer
+    //implicit val ser = ProjectedBufferedTensor.serializer
+    implicitly[CatalystSerializer[RFTensor]]
     val ref = row(input).to[TensorRef]
-    val realized = ref.realizedTensor(bufferPixels)
-
-    realized.toInternalRow
+    ref.delayed.toInternalRow //realizedTensor(bufferPixels)
   }
 }
 

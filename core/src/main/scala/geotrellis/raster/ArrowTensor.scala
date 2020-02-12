@@ -23,6 +23,7 @@ import scala.collection.JavaConverters._
 
 case class ArrowTensor(val vector: Float8Vector, val shape: Seq[Int]) extends CellGrid {
   // TODO: Should we be using ArrowBuf here directly, since Arrow Tensor can not have pages?
+  lazy val depth = shape(0)
   lazy val rows = shape(1)
   lazy val cols = shape(2)
   val cellType = DoubleCellType

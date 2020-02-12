@@ -33,7 +33,7 @@ import org.locationtech.rasterframes._
 import org.locationtech.rasterframes.encoders.CatalystSerializer.{CatalystIO, _}
 import org.locationtech.rasterframes.encoders.{CatalystSerializer, CatalystSerializerEncoder}
 import org.locationtech.rasterframes.ref.RasterSource._
-import org.locationtech.rasterframes.tensors.ProjectedBufferedTensor
+import org.locationtech.rasterframes.tensors.{ProjectedBufferedTensor, RFTensor}
 import org.locationtech.rasterframes.expressions.transformers.PatternToRasterSources._
 
 
@@ -57,6 +57,8 @@ case class TensorRef(sources: Seq[RasterSourceWithBand], subextent: Option[Exten
 
   // This should correspond to the gridded region to which this tensor reference refers
   lazy val extent: Extent = RasterExtent(sample.extent, sample.cellSize).extentFor(grid)
+
+  def delayed: TensorRef.Delay = TensorRef.Delay(this)
 
   lazy val realizedTensor: ArrowTensor = {
     //RasterRef.log.trace(s"Fetching $extent ($grid) from band $bandIndex of $sample")
@@ -96,6 +98,8 @@ case class TensorRef(sources: Seq[RasterSourceWithBand], subextent: Option[Exten
 object TensorRef extends LazyLogging {
   import RasterSourceUDT._
   private val log = logger
+
+  case class Delay(tr: TensorRef) extends RFTensor {}
 
   // This function is here to provide gridbounds for padding (via crop w/ clamp=false)
   def bufferedCropBounds(totalBounds: GridBounds, readBounds: GridBounds, bufferPixels: Int): GridBounds = {

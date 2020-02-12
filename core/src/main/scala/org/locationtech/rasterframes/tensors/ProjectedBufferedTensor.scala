@@ -30,11 +30,11 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.rf.TileUDT
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.rf.BufferedTensorUDT
+import org.apache.spark.sql.rf.{TensorUDT, BufferedTensorUDT}
 import org.locationtech.rasterframes.BufferedTensorType
 import org.locationtech.rasterframes.encoders.CatalystSerializer._
 import org.locationtech.rasterframes.encoders.{CatalystSerializer, CatalystSerializerEncoder}
-import org.locationtech.rasterframes.model.TileContext
+import org.locationtech.rasterframes.model.{TensorData, TensorDataContext}
 import org.locationtech.rasterframes.ref.ProjectedRasterLike
 import org.locationtech.rasterframes.ref.RasterRef.RasterRefTile
 import org.locationtech.rasterframes.encoders.StandardEncoders._
@@ -44,7 +44,10 @@ import org.locationtech.rasterframes.encoders.StandardEncoders._
  *
  * @since 9/5/18
  */
-case class ProjectedBufferedTensor(tensor: BufferedTensor, extent: Extent, crs: CRS) {
+case class ProjectedBufferedTensor(tensor: BufferedTensor, extent: Extent, crs: CRS) extends RFTensor {
+  def depth = tensor.tensor.depth
+  def cols = tensor.tensor.cols
+  def rows = tensor.tensor.rows
   def projectedExtent: ProjectedExtent =
     ProjectedExtent(extent, crs)
 
@@ -63,17 +66,19 @@ object ProjectedBufferedTensor {
   implicit val serializer: CatalystSerializer[ProjectedBufferedTensor] =
     new CatalystSerializer[ProjectedBufferedTensor] {
       override val schema: StructType = StructType(Seq(
-        StructField("tensor_context", schemaOf[TileContext], true),
+        StructField("tensor_context", schemaOf[TensorDataContext], true),
         StructField("tensor", BufferedTensorType, false))
       )
 
       override protected def to[R](t: ProjectedBufferedTensor, io: CatalystIO[R]): R = io.create(
-        io.to(TileContext(t.extent, t.crs)),
-        io.to[BufferedTensor](t.tensor)(BufferedTensorUDT.bufferedTensorSerializer)
+        io.to(TensorDataContext(t.extent, t.crs, t.depth, t.rows, t.cols)),
+        io.to[TensorData](
+          TensorData(Left(t.tensor.tensor.toArrowBytes()))
+        )(TensorData.tensorDataSerializer)
       )
 
       override protected def from[R](t: R, io: CatalystIO[R]): ProjectedBufferedTensor = {
-        val ctx = io.get[TileContext](t, 0)
+        val ctx = io.get[TensorDataContext](t, 0)
         val tensor = io.get[BufferedTensor](t, 1)(BufferedTensorUDT.bufferedTensorSerializer)
         ProjectedBufferedTensor(tensor, ctx.extent, ctx.crs)
       }
