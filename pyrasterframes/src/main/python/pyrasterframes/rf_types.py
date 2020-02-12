@@ -283,6 +283,51 @@ class CellType(object):
         return self.cell_type_name
 
 
+class Extent(object):
+    def __init__(self, minx, miny, maxx, maxy):
+        self.minx = minx
+        self.miny = miny
+        self.maxx = maxx
+        self.maxy = maxy
+
+    @classmethod
+    def from_row(cls, row):
+        return Extent(row['xmin'], row['ymin'], row['xmax'], row['ymax'])
+
+    @property
+    def width(self):
+        return self.maxx - self.minx
+
+    @property
+    def height(self):
+        return self.maxy - self.miny
+
+    def __str__(self):
+        return "Extent[minx={}, miny={}, maxx={}, maxy={}]".format(self.minx, self.miny, self.maxx, self.maxy)
+
+
+class RasterExtent(object):
+    def __init__(self, extent, rows, cols):
+        self.extent = extent
+        self.rows = rows
+        self.cols = cols
+        self.cellwidth = extent.width / cols
+        self.cellheight = extent.height / rows
+
+    def cellOf(self, x, y):
+        c = int((x - self.extent.minx) / self.cellwidth)
+        r = int((self.extent.maxy - y) / self.cellheight)
+        return r, c
+
+    def cellCenter(self, r, c):
+        x = self.extent.minx + (c + 0.5) * self.cellwidth
+        y = self.extent.maxy + (r + 0.5) * self.cellheight
+        return x, y
+
+    def __str__(self):
+        return "RasterExtent[minx={}, miny={}, maxx={}, maxy={}] with {} × {} (r × c)".format(self.extent.minx, self.extent.miny, self.extent.maxx, self.extent.maxy, self.rows, self.cols)
+
+
 class Tile(object):
     def __init__(self, cells, cell_type=None):
         if cell_type is None:
