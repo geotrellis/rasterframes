@@ -31,7 +31,7 @@ object Person {
       ),
       FieldSerializer("age", typeOf[Integer], ObjectType(classOf[Integer]), IntegerType,
         createSerializerForInteger,
-        (path, _) => createSerializerForInteger(path)
+        (path, _) => createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Integer])
       )
     )
 

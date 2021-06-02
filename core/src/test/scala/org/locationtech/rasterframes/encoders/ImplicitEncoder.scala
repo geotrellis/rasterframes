@@ -90,12 +90,9 @@ object ImplicitEncoder {
   ): Expression = cleanUpReflectionObjects {
     val arguments: Seq[Expression] = ev.fields.map { field =>
       val clsName = getClassNameFromType(field.fieldType)
-      // TODO: this should be StringType rather than ObjectType(String)
-      val dataType = field.sqlType
-
       val newTypePath = walkedTypePath.recordField(clsName, field.fieldName)
       val newPath = field.makeDeserializer(
-        addToPath(path, field.fieldName, dataType, newTypePath),
+        addToPath(path, field.fieldName, field.sqlType, newTypePath),
         newTypePath)
 
       expressionWithNullSafety(

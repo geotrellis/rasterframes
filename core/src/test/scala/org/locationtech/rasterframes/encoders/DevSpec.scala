@@ -74,7 +74,21 @@ class DevSpec extends TestEnvironment {
 
     it ("Round-trip Person through DataFrame") {
       implicit def en: Encoder[Person] = {
-        //new ExpressionEncoder[Person](Person.encoder, Person.decoder, typeToClassTag[Person])
+        new ExpressionEncoder[Person](Person.encoder, Person.decoder, typeToClassTag[Person])
+      }
+      val ds = Seq(Person("Bob", 11), Person("Eugene", 10)).toDS
+
+      ds.printSchema()
+      ds.show()
+
+      val df = ds.toDF()
+
+      val me = df.as[Person].first()
+      info(me.toString)
+    }
+
+    it ("Round-trip Person through DataFrame using ImplicitEncoder") {
+      implicit def en: Encoder[Person] = {
         new ExpressionEncoder[Person](
           ImplicitEncoder.createSerializerForColumn[Person],
           ImplicitEncoder.createDeserializerForColumn[Person],
@@ -91,26 +105,12 @@ class DevSpec extends TestEnvironment {
       info(me.toString)
     }
 
-    it ("Round-trip Person through DataFrame using ImplicitEncoder") {
-      implicit def en: Encoder[Person] = {
-        new ExpressionEncoder[Person](Person.encoder, Person.decoder, typeToClassTag[Person])
-      }
-      val ds = Seq(Person("Bob", 11), Person("Eugene", 10)).toDS
-
-      ds.printSchema()
-      ds.show()
-
-      val df = ds.toDF()
-
-      val me = df.as[Person].first()
-      info(me.toString)
-    }
-
     it ("Round-trip School through DataFrame") {
       implicit def en: Encoder[School] = {
-        val home = ImplicitEncoder.createSerializerForColumn[School]
-
-        new ExpressionEncoder[School](home, School.decoder, typeToClassTag[School])
+        new ExpressionEncoder[School](
+        ImplicitEncoder.createSerializerForColumn[School],
+        ImplicitEncoder.createDeserializerForColumn[School],
+        typeToClassTag[School])
       }
 
       val teacher = Person("Sid", 0)
