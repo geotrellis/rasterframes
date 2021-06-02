@@ -42,7 +42,8 @@ class DevSpec extends TestEnvironment {
   describe("home rolled encoders") {
     import spark.implicits._
     it("matches spark serializers") {
-      val home = Person.encoder
+      //val home = Person.encoder
+      val home = ImplicitEncoder.createSerializerForColumn[Person]
       val mySerializerDescription = home.treeString
       info(mySerializerDescription )
 
@@ -53,7 +54,44 @@ class DevSpec extends TestEnvironment {
       mySerializerDescription shouldBe sparkSerializerDescription
     }
 
+    it("matches spark deserializer") {
+      val home = ImplicitEncoder.createDeserializerForColumn[Person]
+      //val home = Person.decoder
+      val myDeSerializerDescription = home.treeString
+      info(myDeSerializerDescription )
+
+      //val baked = implicitly[Encoder[Person]].asInstanceOf[ExpressionEncoder[Person]].objDeserializer
+      val baked = Person.decoder
+      val sparkDeSerializerDescription = baked.treeString
+      info(sparkDeSerializerDescription )
+
+      info(s"Baked dataType: ${baked.dataType}")
+      info(s"Home dataType: ${home.dataType}")
+
+      home.dataType shouldBe baked.dataType
+      myDeSerializerDescription shouldBe sparkDeSerializerDescription
+    }
+
     it ("Round-trip Person through DataFrame") {
+      implicit def en: Encoder[Person] = {
+        //new ExpressionEncoder[Person](Person.encoder, Person.decoder, typeToClassTag[Person])
+        new ExpressionEncoder[Person](
+          ImplicitEncoder.createSerializerForColumn[Person],
+          ImplicitEncoder.createDeserializerForColumn[Person],
+          typeToClassTag[Person])
+      }
+      val ds = Seq(Person("Bob", 11), Person("Eugene", 10)).toDS
+
+      ds.printSchema()
+      ds.show()
+
+      val df = ds.toDF()
+
+      val me = df.as[Person].first()
+      info(me.toString)
+    }
+
+    it ("Round-trip Person through DataFrame using ImplicitEncoder") {
       implicit def en: Encoder[Person] = {
         new ExpressionEncoder[Person](Person.encoder, Person.decoder, typeToClassTag[Person])
       }
@@ -70,7 +108,9 @@ class DevSpec extends TestEnvironment {
 
     it ("Round-trip School through DataFrame") {
       implicit def en: Encoder[School] = {
-        new ExpressionEncoder[School](School.encoder, School.decoder, typeToClassTag[School])
+        val home = ImplicitEncoder.createSerializerForColumn[School]
+
+        new ExpressionEncoder[School](home, School.decoder, typeToClassTag[School])
       }
 
       val teacher = Person("Sid", 0)

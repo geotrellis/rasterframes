@@ -57,6 +57,13 @@ object RFDependenciesPlugin extends AutoPlugin {
       "boundless-releases" at "https://repo.boundlessgeo.com/main/",
       "Open Source Geospatial Foundation Repository" at "https://download.osgeo.org/webdav/geotools/"
     ),
+    dependencyOverrides ++= {
+      Seq(
+        "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0",
+        "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.0",
+        "com.fasterxml.jackson.core" % "jackson-annotations" % "2.10.0"
+      )
+    },
     // dependencyOverrides += "com.azavea.gdal" % "gdal-warp-bindings" % "33.f746890",
     // NB: Make sure to update the Spark version in pyrasterframes/python/setup.py
     rfSparkVersion := "3.1.1",

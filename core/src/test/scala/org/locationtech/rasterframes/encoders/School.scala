@@ -2,20 +2,49 @@ package org.locationtech.rasterframes.encoders
 
 import org.apache.spark.sql.catalyst.DeserializerBuildHelper.{addToPath, deserializerForWithNullSafetyAndUpcast, expressionWithNullSafety}
 import org.apache.spark.sql.catalyst.ScalaReflection.{Schema, cleanUpReflectionObjects, dataTypeFor, encodeFieldNameToIdentifier, getClassFromType, getClassNameFromType, schemaFor}
-import org.apache.spark.sql.catalyst.SerializerBuildHelper.createSerializerForObject
+import org.apache.spark.sql.catalyst.SerializerBuildHelper.{createSerializerForInteger, createSerializerForObject, createSerializerForString}
 import org.apache.spark.sql.catalyst.{WalkedTypePath, expressions}
 import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, NewInstance}
 import org.apache.spark.sql.catalyst.expressions.{BoundReference, Expression, IsNull, KnownNotNull}
-import org.apache.spark.sql.types.ObjectType
+import org.apache.spark.sql.types.{DataType, IntegerType, ObjectType, StringType, StructField, StructType}
 import org.locationtech.rasterframes.encoders.Person.{deserializerFor, deserializerForPerson, serializerFor, serializerForPerson}
 import org.apache.spark.sql.catalyst.ScalaReflection.universe.{AnnotatedType, Type, typeOf, typeTag}
 import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
+import org.locationtech.rasterframes.encoders.ImplicitEncoder.FieldSerializer
 
 import javax.lang.model.SourceVersion
 
 case class School(teacher: Person, student: Person)
 
 object School {
+  implicit val implicitEncoder: ImplicitEncoder[School] = new ImplicitEncoder[School] {
+    def dataType: DataType =
+      StructType(List(
+        StructField("teacher", ImplicitEncoder[Person].dataType),
+        StructField("student", ImplicitEncoder[Person].dataType)
+      ))
+
+    def nullable = false
+
+    def fields : Seq[FieldSerializer] = List(
+      FieldSerializer("teacher", typeOf[Person], ObjectType(classOf[Person]),
+        ImplicitEncoder[Person].dataType,
+        ImplicitEncoder.createSerializerFor[Person],
+        ImplicitEncoder.createDeserializerFor[Person]
+      ),
+      FieldSerializer("student", typeOf[Person], ObjectType(classOf[Person]),
+        ImplicitEncoder[Person].dataType,
+        ImplicitEncoder.createSerializerFor[Person],
+        ImplicitEncoder.createDeserializerFor[Person]
+      )
+    )
+
+    override def constructor(arguments: Seq[Expression]): Expression = {
+      val cls = classOf[School]
+      NewInstance(cls, arguments, ObjectType(cls), propagateNull = false)
+    }
+  }
+
   def encoder: Expression = {
     val tpe = typeOf[School]
     val clsName = getClassNameFromType(tpe)

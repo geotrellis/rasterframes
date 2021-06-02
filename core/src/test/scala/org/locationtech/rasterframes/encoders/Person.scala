@@ -1,7 +1,7 @@
 package org.locationtech.rasterframes.encoders
 
 import org.apache.spark.sql.catalyst.DeserializerBuildHelper.{addToPath, createDeserializerForInstant, createDeserializerForLocalDate, createDeserializerForSqlDate, createDeserializerForSqlTimestamp, createDeserializerForString, createDeserializerForTypesSupportValueOf, deserializerForWithNullSafetyAndUpcast, expressionWithNullSafety}
-import org.apache.spark.sql.catalyst.ScalaReflection.{Schema, arrayClassFor, cleanUpReflectionObjects, dataTypeFor, encodeFieldNameToIdentifier, getClassFromType, getClassNameFromType, getConstructorParameters, isSubtype, localTypeOf, schemaFor}
+import org.apache.spark.sql.catalyst.ScalaReflection.{Schema, cleanUpReflectionObjects, dataTypeFor, encodeFieldNameToIdentifier, getClassFromType, getClassNameFromType, getConstructorParameters, isSubtype, localTypeOf, schemaFor}
 import org.apache.spark.sql.catalyst.SerializerBuildHelper.{createSerializerForBoolean, createSerializerForByte, createSerializerForDouble, createSerializerForFloat, createSerializerForInteger, createSerializerForJavaBigDecimal, createSerializerForJavaBigInteger, createSerializerForJavaInstant, createSerializerForJavaLocalDate, createSerializerForLong, createSerializerForObject, createSerializerForScalaBigDecimal, createSerializerForScalaBigInt, createSerializerForShort, createSerializerForSqlDate, createSerializerForSqlTimestamp, createSerializerForString}
 import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
 import org.apache.spark.sql.catalyst.{WalkedTypePath, expressions}
@@ -10,11 +10,37 @@ import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, NewInstance}
 
 import javax.lang.model.SourceVersion
 import org.apache.spark.sql.catalyst.ScalaReflection.universe.{AnnotatedType, Type, typeOf, typeTag}
+import org.apache.spark.sql.types.{DataType, IntegerType, ObjectType, StringType, StructField, StructType}
 import org.apache.spark.unsafe.types.CalendarInterval
+import org.locationtech.rasterframes.encoders.ImplicitEncoder.FieldSerializer
 
 case class Person(name: String, age: Integer)
 
 object Person {
+  implicit val implicitEncoder: ImplicitEncoder[Person] = new ImplicitEncoder[Person] {
+    def dataType: DataType = StructType(List(
+        StructField("name", StringType),
+        StructField("age", IntegerType)))
+
+    def nullable = true
+
+    def fields : Seq[FieldSerializer] = List(
+      FieldSerializer("name", typeOf[String], ObjectType(classOf[String]), StringType,
+        createSerializerForString,
+        (path, _) => createDeserializerForString(path, returnNullable = true)
+      ),
+      FieldSerializer("age", typeOf[Integer], ObjectType(classOf[Integer]), IntegerType,
+        createSerializerForInteger,
+        (path, _) => createSerializerForInteger(path)
+      )
+    )
+
+    override def constructor(arguments: Seq[Expression]): Expression = {
+      val cls = classOf[Person]
+      NewInstance(cls, arguments, ObjectType(cls), propagateNull = false)
+    }
+  }
+
   private def baseType(tpe: `Type`): `Type` = {
     tpe.dealias match {
       case annotatedType: AnnotatedType => annotatedType.underlying
@@ -33,7 +59,6 @@ object Person {
   import org.apache.spark.sql.types._
 
 
-
   def encoder: Expression = {
     val tpe = typeOf[Person]
     val clsName = getClassNameFromType(tpe)
@@ -47,12 +72,12 @@ object Person {
   }
 
 
+
   def serializerForPerson(
     inputObject: Expression,
     tpe: `Type`,
     walkedTypePath: WalkedTypePath,
     seenTypeSet: Set[`Type`] = Set.empty): Expression = cleanUpReflectionObjects {
-
     val params = List(("name", typeOf[String], ObjectType(classOf[String])), ("age", typeOf[Integer], ObjectType(classOf[Integer])))
 
     val fields = params.map { case (fieldName, fieldType, dt) =>
@@ -68,6 +93,7 @@ object Person {
       // for IntegerType without KnownNotNull. And that's what we do not expect to.
       val fieldValue = Invoke(KnownNotNull(inputObject), fieldName, dt,
         returnNullable = !fieldType.typeSymbol.asClass.isPrimitive)
+
       val clsName = getClassNameFromType(fieldType)
       val newPath = walkedTypePath.recordField(clsName, fieldName)
 
